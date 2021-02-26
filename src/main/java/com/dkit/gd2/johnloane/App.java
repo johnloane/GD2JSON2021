@@ -14,6 +14,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.rmi.server.RemoteObjectInvocationHandler;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Map;
 
@@ -43,18 +45,94 @@ public class App
         createMapFromJSONArrayString(objectMapper);
         deserializeJSONStringExtraFields(objectMapper);
         useCustomSerializer(objectMapper);
+        useCustomDeserializer();
+        testDateFormatter();
+        deserializeToArray();
+    }
+
+    private static void deserializeToArray()
+    {
+        String jsonCarArray = "[{\"colour\":\"White\", \"type\":\"BMW\"},{\"colour\":\"Blue\", \"type\":\"Skoda\"},{\"colour\":\"Grey\", \"type\":\"Delorian\"}]";
+
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(DeserializationFeature.USE_JAVA_ARRAY_FOR_JSON_ARRAY, true);
+        try
+        {
+            Car[] cars = mapper.readValue(jsonCarArray, Car[].class);
+            System.out.println("Reading from json array to java array");
+            printCarArray(cars);
+        }
+        catch(JsonMappingException e)
+        {
+            System.out.println(e.getMessage());
+        }
+        catch(JsonProcessingException e)
+        {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private static void printCarArray(Car[] cars)
+    {
+        for(Car car : cars)
+        {
+            System.out.println(car);
+        }
+    }
+
+    private static void testDateFormatter()
+    {
+        ObjectMapper mapper = new ObjectMapper();
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm a z");
+        mapper.setDateFormat(df);
+
+        Car car = new Car("Black", "Datsun");
+        Request request = new Request(car);
+        try
+        {
+            String requestAsString = mapper.writeValueAsString(request);
+            System.out.println("Date Format example: " + requestAsString);
+        }
+        catch(JsonProcessingException e)
+        {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private static void useCustomDeserializer()
+    {
+        String json = "{\"colour\":\"Black\", \"type\":\"Ford\"}";
+        ObjectMapper customDSMapper = new ObjectMapper();
+        SimpleModule module = new SimpleModule("CustomCarDeserializer", new Version(1,0, 0, null, null, null));
+        module.addDeserializer(Car.class, new CustomCarDeserializer());
+        customDSMapper.registerModule(module);
+
+        try
+        {
+            Car car = customDSMapper.readValue(json, Car.class);
+            System.out.println("Custom deserializer: " + car);
+        }
+        catch(JsonMappingException e)
+        {
+            System.out.println(e.getMessage());
+        }
+        catch(JsonProcessingException e)
+        {
+            System.out.println(e.getMessage());
+        }
     }
 
     private static void useCustomSerializer(ObjectMapper objectMapper)
     {
+        ObjectMapper customMapper = new ObjectMapper();
         SimpleModule module = new SimpleModule("CustomCarSerializer", new Version(1,0,0,null, null, null));
         module.addSerializer(Car.class, new CustomCarSerializer());
-        objectMapper.registerModule(module);
+        customMapper.registerModule(module);
 
         Car car = new Car("Black", "Porsche");
         try
         {
-            String carJson = objectMapper.writeValueAsString(car);
+            String carJson = customMapper.writeValueAsString(car);
             System.out.println("Custom version: " + carJson);
         }
         catch(JsonProcessingException e)

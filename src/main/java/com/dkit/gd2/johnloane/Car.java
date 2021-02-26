@@ -13,7 +13,6 @@ public class Car
     //essential for creating a car from a JSON String
     public Car()
     {
-
     }
 
     public String getColour()
@@ -33,5 +32,10 @@ public class Car
                 "colour='" + colour + '\'' +
                 ", type='" + type + '\'' +
                 '}';
+    }
+
+    public void setColour(String colour)
+    {
+        this.colour = colour;
     }
 }
