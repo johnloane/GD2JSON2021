@@ -2,13 +2,20 @@ package com.dkit.gd2.johnloane;
 
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.Version;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.rmi.server.RemoteObjectInvocationHandler;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Demo JSON
@@ -32,6 +39,103 @@ public class App
         getISSPosition(objectMapper, ISS_NOW_URI);
 
         testJSONNode(objectMapper);
+        createListFromJSONArrayString(objectMapper);
+        createMapFromJSONArrayString(objectMapper);
+        deserializeJSONStringExtraFields(objectMapper);
+        useCustomSerializer(objectMapper);
+    }
+
+    private static void useCustomSerializer(ObjectMapper objectMapper)
+    {
+        SimpleModule module = new SimpleModule("CustomCarSerializer", new Version(1,0,0,null, null, null));
+        module.addSerializer(Car.class, new CustomCarSerializer());
+        objectMapper.registerModule(module);
+
+        Car car = new Car("Black", "Porsche");
+        try
+        {
+            String carJson = objectMapper.writeValueAsString(car);
+            System.out.println("Custom version: " + carJson);
+        }
+        catch(JsonProcessingException e)
+        {
+            System.out.println(e.getMessage());
+        }
+
+
+    }
+
+    private static void deserializeJSONStringExtraFields(ObjectMapper objectMapper)
+    {
+        String jsonString = "{\"colour\":\"Black\", \"type\":\"Ford\", \"year\":\"2020\"}";
+        try
+        {
+            objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            Car car = objectMapper.readValue(jsonString, Car.class);
+            System.out.println("Deserialized car: " + car);
+        }
+        catch(JsonMappingException e)
+        {
+            System.out.println(e.getMessage());
+        }
+        catch(JsonProcessingException e)
+        {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private static void createMapFromJSONArrayString(ObjectMapper objectMapper)
+    {
+        String jsonCarMap = "{\"colour\":\"White\", \"type\":\"BMW\"}";
+
+        try
+        {
+            Map<String, Object> carMap = objectMapper.readValue(jsonCarMap, new TypeReference<Map<String, Object>>() {});
+            printMap(carMap);
+        }
+        catch(JsonMappingException e)
+        {
+            System.out.println(e.getMessage());
+        }
+        catch(JsonProcessingException e)
+        {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private static void printMap(Map<String, Object> carMap)
+    {
+        for(Map.Entry<String, Object> entry : carMap.entrySet())
+        {
+            System.out.println(entry.getKey() + " : " + entry.getValue());
+        }
+    }
+
+    private static void createListFromJSONArrayString(ObjectMapper objectMapper)
+    {
+        String jsonCarArray = "[{\"colour\":\"White\", \"type\":\"BMW\"},{\"colour\":\"Blue\", \"type\":\"Skoda\"},{\"colour\":\"Grey\", \"type\":\"Delorian\"}]";
+
+        try
+        {
+            List<Car> carList = objectMapper.readValue(jsonCarArray, new TypeReference<List<Car>>() {});
+            printList(carList);
+        }
+        catch(JsonMappingException e)
+        {
+            System.out.println(e.getMessage());
+        }
+        catch(JsonProcessingException e)
+        {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private static void printList(List<Car> carList)
+    {
+        for(Car car : carList)
+        {
+            System.out.println("Reading JSON array: " + car);
+        }
     }
 
     private static void testJSONNode(ObjectMapper objectMapper)
@@ -101,7 +205,7 @@ public class App
     {
         Car car = null;
 
-        String jsonString = "{\"colour\":\"Black\", \"type\":\"Ford\"}";
+        String jsonString = "{\"colour\":\"Black\", \"type\":\"Ford\", \"year\":\"2020\"}";
         try
         {
 
